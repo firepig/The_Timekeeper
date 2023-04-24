@@ -1,0 +1,85 @@
+body {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  background-color: #f9f9f9;
+}
+
+header {
+  background-color: #454545;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+  font-size: 36px;
+}
+
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+form {
+  display: flex;
+  margin-bottom: 20px;
+}
+
+input[type="text"], input[type="date"], button {
+  padding: 10px;
+  border: none;
+  font-size: 16px;
+  color: #454545;
+}
+
+input[type="text"], input[type="date"] {
+  flex-grow: 1;
+  border: 2px solid #eee;
+  border-radius: 3px;
+}
+
+input[type="text"]:focus, input[type="date"]:focus {
+  outline: none;
+  border-color: #454545;
+}
+
+button[type="submit"] {
+  background-color: #454545;
+  color: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+button[type="submit"]:hover {
+  background-color: #363636;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  margin: 10px 0;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  border-radius: 3px;
+}
+li {
+  display:flex;
+}
+.task {
+  display:flex;
+  width:100%;
+}
+.start, .stop, .timer .delete {
+  margin-left: 10px;
+}
+.edit {
+  margin-left: auto;
+}

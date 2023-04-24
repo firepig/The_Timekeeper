@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo List App</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Todo List App</h1>
+  </header>
+  <main>
+    <form>
+      <input type="text" placeholder="Add task...">
+      <input type="date" placeholder="Due date...">
+      <button type="submit">Add</button>
+    </form>
+      <ul>
+        <!-- Add tasks dynamically from local storage -->
+      </ul>
+  </main>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="app.js"></script>
+  <button id="export-button">Export Tasks</button>
+</body>
+</html>

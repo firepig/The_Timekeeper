@@ -1,0 +1,35 @@
+Task 1: Dont delete me I contain a sloppy bug where the first item gets start "held down"
+Due date: 
+Completed: No
+Elapsed time: 16:03:48
+----------------------------------------
+Task 2: Demo - TMT-319356	1 hour with prep included
+Due date: 2023-04-18
+Completed: No
+Elapsed time: 01:38:26
+----------------------------------------
+Task 3: demo - TMT-318370 1 hour with prep included
+Due date: 2023-04-18
+Completed: No
+Elapsed time: 01:24:30
+----------------------------------------
+Task 4: TMT-318591 - 3h - dev , finished code on reported issue, worked on fixing other tab order issue that I found.
+Due date: 2023-04-18
+Completed: No
+Elapsed time: 04:21:13
+----------------------------------------
+Task 5: Morning meeting - Blue
+Due date: 2023-04-19
+Completed: No
+Elapsed time: 00:17:12
+----------------------------------------
+Task 6: TMT-318591 - completed Branch with original window tab order changes and started new changes..
+Due date: 2023-04-19
+Completed: No
+Elapsed time: 04:55:04
+----------------------------------------
+Task 7: TMT-320049 - Investigation/mockup
+Due date: 2023-04-19
+Completed: No
+Elapsed time: 00:00:00
+----------------------------------------
