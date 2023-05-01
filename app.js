@@ -40,12 +40,14 @@ $(document).ready(function () {
   // Add a new task to the list
   $("form").on("submit", function (e) {
     e.preventDefault();
-    var taskName = $('input[type="text"]').val().trim();
+    var taskJIRA = $('#TaskJIRA').val().trim();
+    var taskDescr = $('#TaskDescr').val().trim();
     var dueDate = $('input[type="date"]').val();
-    if (taskName !== "") {
-      var task = { name: taskName, completed: false, dueDate: dueDate };
+    if (taskDescr !== "") {
+      var task = { JIRA: taskJIRA, name: taskDescr, completed: false, dueDate: dueDate };
       TaskManager.addTask(task);
-      $('input[type="text"]').val("");
+      $('#TaskJIRA').val("");
+      $('#TaskDescr').val("");
       $('input[type="date"]').val("");
       renderTasks();
     }
@@ -114,6 +116,8 @@ $(document).ready(function () {
     for (var i = 0; i < tasks.length; i++) {
       var task = tasks[i];
       var li = $('<li>');
+      var spanJira = $('<span>', { class: 'JIRA', text: task.JIRA });
+      var lineBreak = $('<br>', { class: 'break'});
       var span = $('<span>', { class: 'task', text: task.name });
       var startButton = $('<button>', { class: 'start', text: (task.startTime && !task.completed) ? 'Stop' : '>' });
       var editButton = $('<button>', { class: 'edit', text: 'Edit' });
@@ -124,7 +128,7 @@ $(document).ready(function () {
         value: task.elapsedTime ? formatTime(task.elapsedTime) : '00:00:00',
         readonly: true
       });
-      li.append(span, startButton, editButton, deleteButton, checkbox, dueDate, timer);
+      li.append(spanJira, lineBreak, span, startButton, editButton, deleteButton, checkbox, dueDate, timer);
       $('ul').append(li);
     }
   }
@@ -134,6 +138,7 @@ $(document).ready(function () {
     var tasksText = tasks.map(function (task, index) {
       return (
         "Task " + (index + 1) + ": " + task.name + "\n" +
+        "JIRA: " + task.JIRA + "\n" +
         "Due date: " + task.dueDate + "\n" +
         "Completed: " + (task.completed ? "Yes" : "No") + "\n" +
         "Elapsed time: " + (task.elapsedTime ? formatTime(task.elapsedTime) : "00:00:00") + "\n" +
