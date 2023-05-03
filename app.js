@@ -1,38 +1,62 @@
 $(document).ready(function () {
-  var TaskManager = {
-    tasks: JSON.parse(localStorage.getItem("tasks")) || [],
-
-    saveTasks: function () {
-      localStorage.setItem("tasks", JSON.stringify(this.tasks));
-    },
-
-    addTask: function (task) {
-      this.tasks.push(task);
-      this.saveTasks();
-    },
-
-    updateTask: function (index, task) {
-      this.tasks[index] = task;
-      this.saveTasks();
-    },
-
-    deleteTask: function (index) {
-      this.tasks.splice(index, 1);
-      this.saveTasks();
-    },
-
-    getTask: function (index) {
-      return this.tasks[index];
-    },
-
-    getAllTasks: function () {
-      return this.tasks;
-    },
-  };
+    // Create a new PouchDB instance
+    var db = new PouchDB('my_database');
+  
+    
+    var TaskManager = {
+      tasks: [],
+  
+      loadTasks: function () {
+        return db.allDocs({ include_docs: true }).then(function (result) {
+          this.tasks = result.rows.map(function (row) {
+            return row.doc;
+          });
+          renderTasks();
+        }.bind(this));
+      },
+  
+      saveTask: function (task) {
+        return db.put(task).then(function (response) {
+          task._rev = response.rev;
+          renderTasks();
+        });
+      },
+  
+      addTask: function (task) {
+        task._id = 'task_' + Date.now(); // Add this line to generate a unique _id for the task
+        this.tasks.push(task);
+        return this.saveTask(task);
+      },
+      
+  
+      updateTask: function (index, task) {
+        this.tasks[index] = task;
+        return this.saveTask(task);
+      },
+  
+      deleteTask: function (index) {
+        var task = this.tasks[index];
+        return db.remove(task).then(function (response) {
+          this.tasks.splice(index, 1);
+          renderTasks();
+        }.bind(this));
+      },
+  
+      getTask: function (index) {
+        return this.tasks[index];
+      },
+  
+      getAllTasks: function () {
+        return this.tasks;
+      },
+    };
+  
+    // Load tasks from PouchDB on page load
+    TaskManager.loadTasks().then(renderTasks);
 
   
   // Load existing tasks from local storage on page load
-  var tasks = TaskManager.tasks;
+  // var tasks = TaskManager.tasks;
 
   // Render existing tasks in the list
   renderTasks();
@@ -113,8 +137,8 @@ $(document).ready(function () {
   // Render tasks in the list
   function renderTasks() {
     $('ul').empty();
-    for (var i = 0; i < tasks.length; i++) {
-      var task = tasks[i];
+    for (var i = 0; i < TaskManager.tasks.length; i++) {
+      var task = TaskManager.tasks[i];
       var li = $('<li>');
       var spanJira = $('<span>', { class: 'JIRA', text: task.JIRA });
       var lineBreak = $('<br>', { class: 'break'});
@@ -132,6 +156,7 @@ $(document).ready(function () {
       $('ul').append(li);
     }
   }
+  
 
   function exportTasksToTextFile() {
     var tasks = TaskManager.getAllTasks();
@@ -165,4 +190,40 @@ $(document).ready(function () {
   
 
 });
+
+// var data = {
+//   "comment": "I did some work here.",
+//   "visibility": {
+//       "type": "group",
+//       "value": "jira-developers"
+//   },
+//   "started": "2017-12-07T09:23:19.552+0000",
+//   "timeSpentSeconds": 12000
+// };
+
+// function postAjax () {
+//   $.ajax({
+//     type: "POST",
+//     contentType: "application/json",
+//     url: "https://jira.trimble.tools/rest/api/2/issue/TMT-318591/worklog",
+//     headers: {
+//       "Authorization": "Bearer MzM0NDE5OTQxNjk0Oi/6gtkqFgIOBiFPYXWsIz1iKc5v"
+//     },
+//     data: JSON.stringify({
+//       "comment": "I did some work here.",
+//       "visibility": {
+//           "type": "group",
+//           "value": "jira-developers"
+//       },
+//       "started": "2017-12-07T09:23:19.552+0000",
+//       "timeSpentSeconds": 12000
+//     }),
+//     success: function(data) {
+//       console.log("Worklog added successfully!");
+//     },
+//     error: function(xhr, textStatus, errorThrown) {
+//       console.log("Error adding worklog: " + errorThrown);
+//     }
+//   });
+// }
 

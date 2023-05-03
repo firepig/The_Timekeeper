@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/firepig/The_Timekeeper#readme",
   "dependencies": {
+    "pouchdb": "^8.0.1",
     "puppeteer": "^19.11.0"
   }
 }
