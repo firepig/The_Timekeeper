@@ -3,7 +3,7 @@ This is a simple web application for managing tasks. Users can add new tasks wit
 
 The app uses local storage to persist tasks between sessions.
 
-How to Use
+How to Use:
 Clone or download the repository
 Open index.html in a web browser
 Add new tasks using the form at the top of the page
