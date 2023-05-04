@@ -19,6 +19,3 @@ HTML
 CSS
 JavaScript
 jQuery
-
-Contributors
-kory_thompson@trimble.com
