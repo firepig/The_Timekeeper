@@ -5,7 +5,7 @@ The app uses local storage to persist tasks between sessions.
 
 How to Use:
 
-Clone or download the repository
+Clone or download the repository 
 
 Open index.html in a web browser
 
