@@ -267,7 +267,7 @@ $("ul").on("click", ".start", function () {
       );
       $("ul").append(li);
     }
-    syncWithRemoteCouchDB();
+    // syncWithRemoteCouchDB();
 
   }
 
