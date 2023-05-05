@@ -39,8 +39,37 @@ $(document).ready(function () {
       );
     });
   }
+
   // Create a new PouchDB instance
   var db = new PouchDB("my_database");
+  var remoteCouchDB = 'YourDBURL';
+  function syncWithRemoteCouchDB() {
+    if (remoteCouchDB) {
+      db.sync(remoteCouchDB, {
+        live: true,
+        retry: true,
+      })
+        .on('change', function (info) {
+          // handle change
+        })
+        .on('paused', function (err) {
+          // replication paused (e.g. replication up to date, user went offline)
+        })
+        .on('active', function () {
+          // replicate resumed (e.g. new changes replicating, user went back online)
+        })
+        .on('denied', function (err) {
+          // a document failed to replicate (e.g. due to permissions)
+        })
+        .on('complete', function (info) {
+          // handle complete
+        })
+        .on('error', function (err) {
+          // handle error
+        });
+    }
+  }
+  syncWithRemoteCouchDB();
   //TODO should only make one instance of the database per user maybe use broadcast channel to send data to other tabs also
   //TODO Create a DB to sync with
   //TODO use a color library to generate and utilize different color palletes from background images for better contrast and visibility (light and dark variants at least).
@@ -238,6 +267,8 @@ $("ul").on("click", ".start", function () {
       );
       $("ul").append(li);
     }
+    syncWithRemoteCouchDB();
+
   }
 
   function exportTasksToTextFile() {
@@ -286,6 +317,10 @@ $("ul").on("click", ".start", function () {
   });
 });
 
+//set up remote database via couchdb
+
+
+
 // var data = {
 //   "comment": "I did some work here.",
 //   "visibility": {
@@ -302,7 +337,7 @@ $("ul").on("click", ".start", function () {
 //     contentType: "application/json",
 //     url: "https://jira.trimble.tools/rest/api/2/issue/TMT-318591/worklog",
 //     headers: {
-//       "Authorization": "Bearer MzM0NDE5OTQxNjk0Oi/6gtkqFgIOBiFPYXWsIz1iKc5v"
+//       "Authorization": "Bearer ACCESSTOKENHERE"
 //     },
 //     data: JSON.stringify({
 //       "comment": "I did some work here.",
