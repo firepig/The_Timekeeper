@@ -7,7 +7,9 @@ How to Use:
 
 Clone or download the repository 
 
-Open index.html in a web browser
+run npm install to install dependencies
+
+Open index.html in a web browser / Or run the server.js file 
 
 Add new tasks using the form at the top of the page
 
@@ -29,3 +31,5 @@ HTML
 CSS
 JavaScript
 jQuery
+Node
+CouchDB 
