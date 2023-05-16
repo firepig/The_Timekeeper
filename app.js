@@ -267,10 +267,10 @@ $("ul").on("click", ".start", function () {
       );
       $("ul").append(li);
     }
-    // syncWithRemoteCouchDB();
+    // syncWithRemoteCouchDB(); 
 
   }
-
+    
   function exportTasksToTextFile() {
     var tasks = TaskManager.getAllTasks();
     var tasksText = tasks
