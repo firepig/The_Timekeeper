@@ -17,7 +17,7 @@ const puppeteer = require('puppeteer'); // v13.0.0 or later
         const targetPage = page;
         const promises = [];
         promises.push(targetPage.waitForNavigation());
-        await targetPage.goto('https://trimble.okta.com/login/login.htm');
+        await targetPage.goto('https://your.target.here.htm');
         await Promise.all(promises);
     }
     {
