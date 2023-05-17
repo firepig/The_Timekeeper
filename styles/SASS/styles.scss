@@ -39,8 +39,10 @@ body {
     height: 100%;
     margin: 0 auto;
     padding: 20px;
-    box-sizing: border-box; 
-  }
+    box-sizing: border-box;
+    overflow-y: scroll;
+    width: 100%;
+}
   
   form {
     display: flex;
