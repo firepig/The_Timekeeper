@@ -10,6 +10,13 @@ html {
     height:100%;
 }
 
+header {
+  background-color: $panel-color;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+
 body {
     font-family: 'Open Sans', sans-serif;
     font-size: 16px;
@@ -23,13 +30,8 @@ body {
     height:100%;
   }
   
-  header {
-    background-color: $panel-color;
-    color: #fff;
-    padding: 20px;
-    text-align: center;
-  }
-  
+
+
   h1 {
     margin: 0;
     font-size: 36px;
@@ -42,11 +44,14 @@ body {
     box-sizing: border-box;
     overflow-y: scroll;
     width: 100%;
-}
+  }
   
   form {
     display: flex;
     margin-bottom: 20px;
+    max-width: 75%;
+    margin-left: auto;
+    margin-right: auto;
   }
   
   input[type="text"], 
@@ -144,6 +149,9 @@ body {
   ul {
     list-style: none;
     padding: 0;
+    max-width: 75%;
+    margin-left: auto;
+    margin-right: auto;
   }
   
   li {
