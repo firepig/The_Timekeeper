@@ -1,30 +1,28 @@
 $(document).ready(function () {
   // animate image transitions over the course o 13 seconds using css
   function timeCheck() {
-    //TODO add a function to check the time and change the background image accordingly
-    var currentTime = new Date().getHours();
-    if (23 <= currentTime && currentTime < 3) {
-      // it's between 11pm and 3am
-      $("body").css("background-image", "url(images/2.jpg)");
-    } else if (6 <= currentTime && currentTime < 9) {
-      // it's between 6am and 9am
-      $("body").css("background-image", "url(images/1.jpg)");
-    } else if (9 <= currentTime && currentTime < 12) {
-      // it's between 9am and 12pm
-      $("body").css("background-image", "url(images/3.jpg)");
-    } else if (12 <= currentTime && currentTime < 15) {
-      // it's between 12pm and 3pm
-      $("body").css("background-image", "url(images/4.jpg)");
-    } else if (15 <= currentTime && currentTime < 18) {
-      // it's between 3pm and 6pm
-      $("body").css("background-image", "url(images/5.jpg)");
-    } else if (18 <= currentTime && currentTime < 21) {
-      // it's between 6pm and 9pm
-      $("body").css("background-image", "url(images/7.jpg)");
-    } else {
-      // it's between 9pm and 11pm
-      $("body").css("background-image", "url(images/2.jpg)");
-    }
+    const timeRanges = [
+      { start: 23, end: 3, image: "url(images/2.jpg)" },
+      { start: 6, end: 9, image: "url(images/1.jpg)" },
+      { start: 9, end: 12, image: "url(images/3.jpg)" },
+      { start: 12, end: 15, image: "url(images/4.jpg)" },
+      { start: 15, end: 18, image: "url(images/5.jpg)" },
+      { start: 18, end: 21, image: "url(images/7.jpg)" },
+      { start: 21, end: 23, image: "url(images/2.jpg)" }
+    ];
+  
+    const currentTime = new Date().getHours();
+    const range = timeRanges.find(r => {
+      if (r.start > r.end) {
+        // The range crosses midnight (e.g. 23 to 3)
+        return currentTime >= r.start || currentTime < r.end;
+      } else {
+        // The range does not cross midnight
+        return currentTime >= r.start && currentTime < r.end;
+      }
+    });
+    
+    $("body").css("background-image", range.image);
     console.log("timechecked-background applied");
   }
   timeCheck();
@@ -146,59 +144,111 @@ $(document).ready(function () {
     var taskJIRA = $("#TaskJIRA").val().trim();
     var taskDescr = $("#TaskDescr").val().trim();
     var dueDate = $('input[type="date"]').val();
+    var taskHours = parseInt($("#TaskHours").val().trim()) || 0;
+    var taskMinutes = parseInt($("#TaskMinutes").val().trim()) || 0;
+    var taskSeconds = parseInt($("#TaskSeconds").val().trim()) || 0;
+
+    // Convert hours, minutes, and seconds to a string in hh:mm:ss format
+    var taskEstimate = `${String(taskHours).padStart(2, '0')}:${String(taskMinutes).padStart(2, '0')}:${String(taskSeconds).padStart(2, '0')}`;
+
     if (taskDescr !== "") {
       var task = {
         JIRA: taskJIRA,
         name: taskDescr,
         completed: false,
         dueDate: dueDate,
-        timerRunning: false, // Add this line
+        timerRunning: false,
+        estimatedTime: taskEstimate  // Store the estimate as a string
       };
-      TaskManager.addTask(task);
-      $("#TaskJIRA").val("");
+      TaskManager.addTask(task);       
+      // clear fields 
+      $("#TaskJIRA").val(""); 
       $("#TaskDescr").val("");
-      $('input[type="date"]').val("");
+      $("#TaskHours").val(""); 
+      $("#TaskMinutes").val(""); 
+      $("#TaskSeconds").val(""); 
+      $('input[type="date"]').val(""); 
+      // render tasks
+      renderTasks();
+    }
+  });
+  // Mark a task as completed
+  $("ul").on("change", 'input[type="checkbox"]', function () {
+    var index = $(this).closest(".card").index();
+    var task = TaskManager.getTask(index);
+    if (task) {
+      task.completed = $(this).prop("checked");
+      TaskManager.updateTask(index, task);
       renderTasks();
     }
   });
 
-  // Mark a task as completed
-  $("ul").on("change", 'input[type="checkbox"]', function () {
-    var index = $(this).closest("li").index();
-    var task = TaskManager.getTask(index);
-    task.completed = $(this).prop("checked");
-    TaskManager.updateTask(index, task);
-    renderTasks();
-  });
+  var timerIntervals = {};
 
+  function parseTimeToSeconds(timeStr) {
+    var parts = timeStr.split(":");
+    if (parts.length === 3) {
+      return (+parts[0]) * 3600 + (+parts[1]) * 60 + (+parts[2]);
+    }
+    return 0;
+  }
+
+  function updateTimerDisplay(taskId) {
+    // Find the task by its _id
+    const task = TaskManager.tasks.find(t => t._id === taskId);
+    if (task && task.timerRunning) {
+      const elapsedTime = new Date().getTime() - task.startTime + (task.elapsedTime || 0);
+      // Find the card that has this taskId
+      const $card = $("ul .card").filter(function () {
+        return $(this).data("id") === taskId;
+      });
+      const $timer = $card.find(".timer");
+      $timer.val(formatTime(elapsedTime));
+    
+      // Check if estimated time is exceeded
+      if (task.estimatedTime) {
+        const estimatedSeconds = parseTimeToSeconds(task.estimatedTime);
+        const elapsedSeconds = Math.floor(elapsedTime / 1000);
+        $timer.css("color", elapsedSeconds > estimatedSeconds ? "red" : "black");
+      }
+    }
+  }
+  
+  
   // Start stopwatch function when start button is pressed
-$("ul").on("click", ".start", function () {
-  var index = $(this).closest("li").index();
-  var task = TaskManager.getTask(index);
-
-  // If the timer is running, stop it
-  if (task.timerRunning) {
-    var elapsedTime = new Date().getTime() - task.startTime;
-    task.elapsedTime = (task.elapsedTime || 0) + elapsedTime;
-    task.timerRunning = false;
-    task.startTime = null;
-  }
-  // If the timer is not running, start it
-  else {
-    task.startTime = new Date().getTime();
-    task.timerRunning = true;
-  }
-
-  TaskManager.updateTask(index, task);
-  renderTasks();
-});
-
+  $("ul").on("click", ".start", function () {
+    const taskId = $(this).closest(".card").data("id");
+    const task = TaskManager.tasks.find(t => t._id === taskId);
+  
+    // If the timer is running, stop it
+    if (task.timerRunning) {
+      var elapsedTime = new Date().getTime() - task.startTime;
+      task.elapsedTime = (task.elapsedTime || 0) + elapsedTime;
+      task.timerRunning = false;
+      task.startTime = null;
+      clearInterval(timerIntervals[taskId]);
+      // Update only the timer display instead of re-rendering everything
+      $(this).closest(".card").find(".timer").val(formatTime(task.elapsedTime));
+    }
+    // If the timer is not running, start it
+    else {
+      task.startTime = new Date().getTime();
+      task.timerRunning = true;
+      timerIntervals[taskId] = setInterval(function () {
+        updateTimerDisplay(taskId);
+      }, 1000); // Update every second
+    }
+  
+    TaskManager.updateTask(taskId, task);
+    // Optionally update only the affected task's DOM, rather than calling renderTasks()
+  });
 
   // Edit a task in the list
   $("ul").on("click", ".edit", function () {
-    var index = $(this).closest("li").index();
-    var task = TaskManager.getTask(index);
-    var newTaskName = prompt("Edit task name:", task.name);
+    const taskId = $(this).closest(".card").data("id");
+    const index = TaskManager.tasks.findIndex(t => t._id === taskId);
+    const task = TaskManager.tasks[index];
+    const newTaskName = prompt("Edit task name:", task.name);
     if (newTaskName && newTaskName.trim() !== "") {
       task.name = newTaskName;
       TaskManager.updateTask(index, task);
@@ -208,7 +258,8 @@ $("ul").on("click", ".start", function () {
 
   // Delete a task from the list
   $("ul").on("click", ".delete", function () {
-    var index = $(this).closest("li").index();
+    const taskId = $(this).closest(".card").data("id");
+    const index = TaskManager.tasks.findIndex(t => t._id === taskId);
     TaskManager.deleteTask(index);
     renderTasks();
   });
@@ -231,46 +282,114 @@ $("ul").on("click", ".start", function () {
   // Render tasks in the list
   function renderTasks() {
     $("ul").empty();
-    for (var i = 0; i < TaskManager.tasks.length; i++) {
-      var task = TaskManager.tasks[i];
-      var li = $("<li>");
-      var spanJira = $("<span>", { class: "JIRA", text: task.JIRA });
-      var lineBreak = $("<br>", { class: "break" });
-      var span = $("<span>", { class: "task", text: task.name });
-      var startButton = $("<button>", {
-        class: "start",
-        text: task.timerRunning ? "X" : ">",
+    TaskManager.tasks.forEach(task => {
+      const card = $("<div>", { class: "card mb-3", "data-id": task._id });
+      
+      // Create card header for the task JIRA
+      var cardHeader = $("<div>", { 
+        class: "card-header", 
+        text: task.JIRA 
       });
-      var editButton = $("<button>", { class: "edit", text: "Edit" });
-      var deleteButton = $("<button>", { class: "delete", text: "Delete" });
+      
+      // Create a Bootstrap row inside the card
+      var row = $("<div>", { class: "row g-0" });
+      
+      // Left column for an image (using a placeholder; hide if not needed)
+      var colImg = $("<div>", { class: "col-md-4 d-none" });
+      var img = $("<img>", { 
+        src: "placeholder.jpg", 
+        class: "img-fluid rounded-start", 
+        alt: "Task image" 
+      });
+      colImg.append(img);
+      
+      // Right column for card content
+      var colBody = $("<div>", { class: "col" });
+      
+      // Card body for primary info
+      var cardBody = $("<div>", { class: "card-body" });
+      
+      // Checkbox container for marking task as completed
+      var checkboxContainer = $("<div>", { class: "form-check mb-2" });
+      var checkboxId = "taskCheckbox_" + task._id;
       var checkbox = $("<input>", {
         type: "checkbox",
         checked: task.completed,
+        class: "form-check-input",
+        id: checkboxId
       });
-      var dueDate = $("<span>", { class: "due-date", text: task.dueDate });
-      var timer = $("<input>", {
-        class: "timer",
+      var checkboxLabel = $("<label>", {
+        class: "form-check-label",
+        for: checkboxId,
+        text: "Completed"
+      });
+      checkboxContainer.append(checkbox, checkboxLabel);
+      
+      // Description: task description (from task.name)
+      var descriptionText = $("<p>", { 
+        class: "card-text", 
+        text: "Description: " + task.name 
+      });
+      
+      // Extra info: due date and estimated time
+      var extraInfo = $("<p>", { class: "card-text" });
+      var smallText = $("<small>", { 
+        class: "text-body-secondary", 
+        html: "Due: " + task.dueDate + " | " +
+              (task.estimatedTime ? "Est: " + task.estimatedTime : "No estimate")
+      });
+      extraInfo.append(smallText);
+      
+      // Append primary info to card body
+      cardBody.append( descriptionText, extraInfo, checkboxContainer);
+      
+      // Create card footer for interactive elements
+      var cardFooter = $("<div>", { 
+        class: "card-footer d-flex justify-content-end align-items-center" 
+      });
+      
+      // Container for start button and timer display
+      var startTimerContainer = $("<div>", { class: "d-flex align-items-center", style: "margin-right:auto" });
+      var startButton = $("<button>", {
+        class: "start btn btn-primary",
+        text: task.timerRunning ? "Stop" : "Start"
+      });
+      var timerInput = $("<input>", {
+        class: "timer ml-2",
         type: "text",
         value: task.elapsedTime ? formatTime(task.elapsedTime) : "00:00:00",
         readonly: true,
+        style: "width:100px;"
       });
-      li.append(
-        spanJira,
-        lineBreak,
-        span,
-        startButton,
-        editButton,
-        deleteButton,
-        checkbox,
-        dueDate,
-        timer
-      );
-      $("ul").append(li);
-    }
-    // syncWithRemoteCouchDB(); 
-
+      startTimerContainer.append(startButton, timerInput);
+      
+      // Action buttons for edit and delete
+      var editButton = $("<button>", {
+        class: "edit btn btn-outline-primary mr-2",
+        text: "Edit"
+      });
+      var deleteButton = $("<button>", {
+        class: "delete btn btn-outline-secondary",
+        text: "Delete",
+        style: "margin-right:.5em;"
+      });
+      
+      // Append interactive elements to card footer
+      cardFooter.append(startTimerContainer, deleteButton, editButton);
+      
+      // Append card header, card body, and footer to right column
+      colBody.append(cardHeader, cardBody, cardFooter);
+      
+      // Assemble the row and card
+      row.append(colImg, colBody);
+      card.append(row);
+      
+      // Append the card to the container (assuming <ul> is your container)
+      $("ul").append(card);
+    });
   }
-    
+  
+
   function exportTasksToTextFile() {
     var tasks = TaskManager.getAllTasks();
     var tasksText = tasks

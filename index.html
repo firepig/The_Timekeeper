@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Timekeeper ☠☠☠</title>
   <link rel="stylesheet" href="styles/styles.css">
+  <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
   <script src="node_modules/pouchdb/dist/pouchdb.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -17,12 +20,60 @@
   </header>
   <main>
     <form>
-      <input id="TaskJIRA" type="text" placeholder="Add JIRA...">
-      <input id="TaskDescr" type="text" placeholder="Add task...">
-      <input id="TaskDate" type="date" placeholder="Due date...">
-      <button id="Submit" type="submit">Add</button>
+      <div class="row">
+        <div class="col-sm">
+          <div class="form-floating">
+            <input class="form-control" id="TaskJIRA" type="text" placeholder="Add JIRA...">
+            <label for="floatingInput">Task Name / Jira</label>
+          </div>
+        </div>
+        <div class="col-sm">
+          <div class="form-floating">
+            <input id="TaskDate" class="form-control" type="date" placeholder="Start Date...">
+            <label for="floatingInput">Task Start</label>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm">
+          <div class="form-floating">
+            <input class="form-control" id="TaskDueDate" type="date" placeholder="Due Date...">
+            <label for="floatingInput">Due Date</label>
+          </div>
+        </div>
+        <div class="col-sm">
+          <div class="form-floating">
+            <input class="form-control" id="TaskHours" type="number" placeholder="Estimated Hours" min="0">
+            <label for="floatingInput">Estimated Hours</label>
+          </div>
+        </div>
+        <div class="col-sm">
+          <div class="form-floating">
+            <input class="form-control" id="TaskMinutes" type="number" placeholder="Estimated Minutes" min="0" max="59">
+            <label for="floatingInput">Estimated Minutes</label>
+          </div>  
+        </div> 
+        <div class="col-sm d-none">
+          <div class="form-floating">
+            <input class="form-control" id="TaskSeconds" type="number" placeholder="Estimated Seconds" min="0" max="59">
+            <label for="floatingInput">Estimated Seconds</label>
+          </div>  
+        </div>
+      </div>
+
+
+      <div class="row">
+        <div class="col-sm">
+          <div class="form-floating">
+            <input id="TaskDescr" class="form-control" type="text" placeholder="Add task...">
+            <label for="floatingInput">Task Description</label>
+          </div>  
+        </div> 
+      </div>
+
+      <button id="Submit" class="btn btn-primary" type="submit">Add</button>
     </form>
-      <ul>
+      <ul class="p-0">
         <!-- Add tasks dynamically from local storage -->
       </ul>
   </main>
