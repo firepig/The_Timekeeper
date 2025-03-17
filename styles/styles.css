@@ -34,6 +34,8 @@ main {
   box-sizing: border-box;
   overflow-y: scroll;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 form {
@@ -44,6 +46,7 @@ form {
   max-width: 75%;
   margin-left: auto;
   margin-right: auto;
+  width:100%;
 }
 form .row {
   display: flex;
@@ -65,7 +68,6 @@ input[type=time] {
 }
 
 input#TaskDate::-webkit-calendar-picker-indicator {
-  filter: invert(1);
   cursor: pointer;
 }
 
