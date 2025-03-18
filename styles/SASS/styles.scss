@@ -23,6 +23,7 @@ body {
   line-height: 1.5;
   background-color: $panel-color;
   transition: background-image 12000ms;
+  background-size:cover;
   margin: 0;
   padding: 0;
   display: flex;
@@ -73,7 +74,6 @@ input[type="time"] {
 }
 
 input#TaskDate::-webkit-calendar-picker-indicator {
-  filter: invert(1);
   cursor: pointer;
 }
 
