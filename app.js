@@ -1,6 +1,8 @@
 $(document).ready(function () {
   // animate image transitions over the course o 13 seconds using css
   function timeCheck() {
+    // Refactor: Use more descriptive variable names
+    // Refactor: Consider using const for timeRanges since it doesn't change
     const timeRanges = [
       { start: 23, end: 3, image: "url(images/2.jpg)" },
       { start: 6, end: 9, image: "url(images/1.jpg)" },
@@ -10,37 +12,39 @@ $(document).ready(function () {
       { start: 18, end: 21, image: "url(images/7.jpg)" },
       { start: 21, end: 23, image: "url(images/2.jpg)" }
     ];
-  
+
     const currentTime = new Date().getHours();
-    const range = timeRanges.find(r => {
-      if (r.start > r.end) {
-        // The range crosses midnight (e.g. 23 to 3)
-        return currentTime >= r.start || currentTime < r.end;
-      } else {
-        // The range does not cross midnight
-        return currentTime >= r.start && currentTime < r.end;
-      }
-    });
-    
-    $("body").css("background-image", range.image);
-    console.log("timechecked-background applied");
+    // Refactor: Simplify the find logic
+    const range = timeRanges.find(r =>
+      (r.start > r.end)
+        ? (currentTime >= r.start || currentTime < r.end)
+        : (currentTime >= r.start && currentTime < r.end)
+    );
+
+    //Improvement: Add a check if range is found
+    if (range) {
+      $("body").css("background-image", range.image);
+      console.log("timechecked-background applied");
+    } else {
+      console.warn("No matching time range found for current hour:", currentTime);
+    }
   }
   timeCheck();
   setInterval(timeCheck, 600000);
 
   function isDuplicate(newTask) {
-    return TaskManager.tasks.some((task) => {
-      return (
-        task.JIRA === newTask.JIRA &&
-        task.name === newTask.name &&
-        task.dueDate === newTask.dueDate
-      );
-    });
+    // Refactor: Use more explicit return
+    return TaskManager.tasks.some(task =>
+      task.JIRA === newTask.JIRA &&
+      task.name === newTask.name &&
+      task.dueDate === newTask.dueDate
+    );
   }
 
   // Create a new PouchDB instance
   var db = new PouchDB("my_database");
   var remoteCouchDB = 'YourDBURL';
+
   function syncWithRemoteCouchDB() {
     if (remoteCouchDB) {
       db.sync(remoteCouchDB, {
@@ -64,6 +68,7 @@ $(document).ready(function () {
         })
         .on('error', function (err) {
           // handle error
+          console.error("Error during CouchDB sync:", err); //Improvement: Log the error
         });
     }
   }
@@ -83,14 +88,14 @@ $(document).ready(function () {
           });
           renderTasks();
         }.bind(this)
-      );
+      ).catch(err => console.error("Error loading tasks:", err)); //Improvement: Catch errors
     },
 
     saveTask: function (task) {
       return db.put(task).then(function (response) {
         task._rev = response.rev;
         renderTasks();
-      });
+      }).catch(err => console.error("Error saving task:", err)); //Improvement: Catch errors
     },
 
     addTask: function (task) {
@@ -117,7 +122,7 @@ $(document).ready(function () {
           this.tasks.splice(index, 1);
           renderTasks();
         }.bind(this)
-      );
+      ).catch(err => console.error("Error deleting task:", err)); //Improvement: Catch errors
     },
 
     getTask: function (index) {
@@ -160,18 +165,19 @@ $(document).ready(function () {
         timerRunning: false,
         estimatedTime: taskEstimate  // Store the estimate as a string
       };
-      TaskManager.addTask(task);       
-      // clear fields 
-      $("#TaskJIRA").val(""); 
+      TaskManager.addTask(task);
+      // clear fields
+      $("#TaskJIRA").val("");
       $("#TaskDescr").val("");
-      $("#TaskHours").val(""); 
-      $("#TaskMinutes").val(""); 
-      $("#TaskSeconds").val(""); 
-      $('input[type="date"]').val(""); 
+      $("#TaskHours").val("");
+      $("#TaskMinutes").val("");
+      $("#TaskSeconds").val("");
+      $('input[type="date"]').val("");
       // render tasks
       renderTasks();
     }
   });
+  
   // Mark a task as completed
   $("ul").on("change", 'input[type="checkbox"]', function () {
     var index = $(this).closest(".card").index();
@@ -184,6 +190,7 @@ $(document).ready(function () {
   });
 
   var timerIntervals = {};
+  var chartInstances = {}; // Store chart instances for updating
 
   function parseTimeToSeconds(timeStr) {
     var parts = timeStr.split(":");
@@ -191,6 +198,36 @@ $(document).ready(function () {
       return (+parts[0]) * 3600 + (+parts[1]) * 60 + (+parts[2]);
     }
     return 0;
+  }
+
+  // Add function to update a task's chart
+  function updateTaskChart(taskId) {
+    const task = TaskManager.tasks.find(t => t._id === taskId);
+    if (!task || !task.estimatedTime || !chartInstances[taskId]) return;
+
+    const estimatedSeconds = parseTimeToSeconds(task.estimatedTime);
+    // Calculate current elapsed time based on startTime and previously accumulated time
+    const currentElapsedTime = task.timerRunning ? 
+      new Date().getTime() - task.startTime + (task.elapsedTime || 0) : 
+      (task.elapsedTime || 0);
+    const elapsedSeconds = Math.floor(currentElapsedTime / 1000);
+    const percentComplete = estimatedSeconds > 0 ? 
+      Math.min((elapsedSeconds / estimatedSeconds) * 100, 100) : 0;
+
+    // Determine the color based on progress
+    let completedColor;
+    if (elapsedSeconds > estimatedSeconds) {
+      completedColor = 'rgba(255, 99, 132, 1)';  // Red: Out of time
+    } else if (percentComplete >= 65) {
+      completedColor = 'rgba(255, 205, 86, 1)';  // Yellow: Warning (>=65%)
+    } else {
+      completedColor = 'rgba(75, 192, 192, 1)';   // Default color for 0-65%
+    }
+
+    // Update the chart data
+    chartInstances[taskId].data.datasets[0].data = [percentComplete, 100 - percentComplete];
+    chartInstances[taskId].data.datasets[0].backgroundColor[0] = completedColor;
+    chartInstances[taskId].update();
   }
 
   function updateTimerDisplay(taskId) {
@@ -204,22 +241,26 @@ $(document).ready(function () {
       });
       const $timer = $card.find(".timer");
       $timer.val(formatTime(elapsedTime));
-    
+
       // Check if estimated time is exceeded
       if (task.estimatedTime) {
         const estimatedSeconds = parseTimeToSeconds(task.estimatedTime);
         const elapsedSeconds = Math.floor(elapsedTime / 1000);
-        $timer.css("color", elapsedSeconds > estimatedSeconds ? "red" : "black");
+        $timer.css("color", elapsedSeconds > estimatedSeconds ? "red" : "green");
+        
+        // Update the chart every 3 seconds to avoid excessive updates
+        if (elapsedTime % 3000 < 1000) {
+          updateTaskChart(taskId);
+        }
       }
     }
   }
-  
-  
+
   // Start stopwatch function when start button is pressed
   $("ul").on("click", ".start", function () {
     const taskId = $(this).closest(".card").data("id");
     const task = TaskManager.tasks.find(t => t._id === taskId);
-  
+
     // If the timer is running, stop it
     if (task.timerRunning) {
       var elapsedTime = new Date().getTime() - task.startTime;
@@ -229,6 +270,10 @@ $(document).ready(function () {
       clearInterval(timerIntervals[taskId]);
       // Update only the timer display instead of re-rendering everything
       $(this).closest(".card").find(".timer").val(formatTime(task.elapsedTime));
+      
+      // Update the chart one last time when stopping
+      updateTaskChart(taskId);
+      $(this).text("Start");
     }
     // If the timer is not running, start it
     else {
@@ -237,8 +282,9 @@ $(document).ready(function () {
       timerIntervals[taskId] = setInterval(function () {
         updateTimerDisplay(taskId);
       }, 1000); // Update every second
+      $(this).text("Stop");
     }
-  
+
     TaskManager.updateTask(taskId, task);
     // Optionally update only the affected task's DOM, rather than calling renderTasks()
   });
@@ -284,32 +330,60 @@ $(document).ready(function () {
     $("ul").empty();
     TaskManager.tasks.forEach(task => {
       const card = $("<div>", { class: "card mb-3", "data-id": task._id });
-      
-      // Create card header for the task JIRA
-      var cardHeader = $("<div>", { 
-        class: "card-header", 
-        text: task.JIRA 
+
+      // Card header for the task JIRA
+      var cardHeader = $("<div>", {
+        class: "card-header",
+        text: task.JIRA
       });
-      
-      // Create a Bootstrap row inside the card
+
+      // Bootstrap row setup
       var row = $("<div>", { class: "row g-0" });
-      
-      // Left column for an image (using a placeholder; hide if not needed)
       var colImg = $("<div>", { class: "col-md-4 d-none" });
-      var img = $("<img>", { 
-        src: "placeholder.jpg", 
-        class: "img-fluid rounded-start", 
-        alt: "Task image" 
+      var img = $("<img>", {
+        src: "placeholder.jpg",
+        class: "img-fluid rounded-start",
+        alt: "Task image"
       });
       colImg.append(img);
-      
-      // Right column for card content
+
       var colBody = $("<div>", { class: "col" });
-      
-      // Card body for primary info
       var cardBody = $("<div>", { class: "card-body" });
-      
-      // Checkbox container for marking task as completed
+
+      // Task description
+      var descriptionText = $("<p>", {
+        class: "card-text",
+        text: "Description: " + task.name
+      });
+
+      // Extra info: Due date and estimated time
+      var extraInfo = $("<p>", { class: "card-text" });
+      var smallText = $("<small>", {
+        class: "text-body-secondary",
+        html: "Due: " + task.dueDate + " | " +
+          (task.estimatedTime ? "Est: " + task.estimatedTime : "No estimate")
+      });
+      extraInfo.append(smallText);
+
+      // Append description and extra info to card body
+      cardBody.append(descriptionText, extraInfo);
+
+      // If the task has an estimated time, insert the donut chart right after the estimate.
+      if (task.estimatedTime) {
+        var chartContainer = $("<div>", {
+          class: "donut-chart-container d-inline-block",
+          style: "width: 25px; height: 25px; margin-left: 10px; transform: translate(0px, .45em);"
+        });
+        var chartCanvas = $("<canvas>", {
+          id: "chart-" + task._id,
+          width: 100,
+          height: 100
+        });
+        chartContainer.append(chartCanvas);
+        extraInfo.append(chartContainer);
+      }
+
+      // Checkbox container
       var checkboxContainer = $("<div>", { class: "form-check mb-2" });
       var checkboxId = "taskCheckbox_" + task._id;
       var checkbox = $("<input>", {
@@ -324,32 +398,18 @@ $(document).ready(function () {
         text: "Completed"
       });
       checkboxContainer.append(checkbox, checkboxLabel);
-      
-      // Description: task description (from task.name)
-      var descriptionText = $("<p>", { 
-        class: "card-text", 
-        text: "Description: " + task.name 
+
+      // Append checkbox container after chart
+      cardBody.append(checkboxContainer);
+
+      // Card footer with timer and buttons
+      var cardFooter = $("<div>", {
+        class: "card-footer d-flex justify-content-end align-items-center"
       });
-      
-      // Extra info: due date and estimated time
-      var extraInfo = $("<p>", { class: "card-text" });
-      var smallText = $("<small>", { 
-        class: "text-body-secondary", 
-        html: "Due: " + task.dueDate + " | " +
-              (task.estimatedTime ? "Est: " + task.estimatedTime : "No estimate")
+      var startTimerContainer = $("<div>", {
+        class: "d-flex align-items-center",
+        style: "margin-right:auto"
       });
-      extraInfo.append(smallText);
-      
-      // Append primary info to card body
-      cardBody.append( descriptionText, extraInfo, checkboxContainer);
-      
-      // Create card footer for interactive elements
-      var cardFooter = $("<div>", { 
-        class: "card-footer d-flex justify-content-end align-items-center" 
-      });
-      
-      // Container for start button and timer display
-      var startTimerContainer = $("<div>", { class: "d-flex align-items-center", style: "margin-right:auto" });
       var startButton = $("<button>", {
         class: "start btn btn-primary",
         text: task.timerRunning ? "Stop" : "Start"
@@ -362,8 +422,7 @@ $(document).ready(function () {
         style: "width:100px;"
       });
       startTimerContainer.append(startButton, timerInput);
-      
-      // Action buttons for edit and delete
+
       var editButton = $("<button>", {
         class: "edit btn btn-outline-primary mr-2",
         text: "Edit"
@@ -373,22 +432,67 @@ $(document).ready(function () {
         text: "Delete",
         style: "margin-right:.5em;"
       });
-      
-      // Append interactive elements to card footer
       cardFooter.append(startTimerContainer, deleteButton, editButton);
-      
-      // Append card header, card body, and footer to right column
+
+      // Assemble the card
       colBody.append(cardHeader, cardBody, cardFooter);
-      
-      // Assemble the row and card
       row.append(colImg, colBody);
       card.append(row);
-      
-      // Append the card to the container (assuming <ul> is your container)
       $("ul").append(card);
+
+      // If the task has an estimated time, create the donut chart
+      if (task.estimatedTime) {
+        const estimatedSeconds = parseTimeToSeconds(task.estimatedTime);
+        const elapsedSeconds = task.elapsedTime ? Math.floor(task.elapsedTime / 1000) : 0;
+        const percentComplete = estimatedSeconds > 0 ? Math.min((elapsedSeconds / estimatedSeconds) * 100, 100) : 0;
+
+        // Determine the completed portion's color based on progress
+        let completedColor;
+        if (elapsedSeconds > estimatedSeconds) {
+          completedColor = 'rgba(255, 99, 132, 1)';  // Red: Out of time
+        } else if (percentComplete >= 65) {
+          completedColor = 'rgba(255, 205, 86, 1)';  // Yellow: Warning (>=65%)
+        } else {
+          completedColor = 'rgba(75, 192, 192, 1)';   // Default color for 0-65%
+        }
+
+        const donutData = {
+          labels: ['Completed', 'Remaining'],
+          datasets: [{
+            data: [percentComplete, 100 - percentComplete],
+            backgroundColor: [
+              completedColor,
+              'rgba(220, 220, 220, 1)'  // Grey for the remaining portion
+            ],
+            borderWidth: 0,
+          }]
+        };
+
+        const config = {
+          type: 'doughnut',
+          data: donutData,
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { display: false },
+              title: { display: false },
+              tooltip: { enabled: false }
+            },
+            cutout: '70%'
+          },
+        };
+
+        // Instantiate the chart for this task and store it in chartInstances
+        var ctx = document.getElementById("chart-" + task._id).getContext("2d");
+        chartInstances[task._id] = new Chart(ctx, config);
+        
+        // If timer is running, set up chart updating immediately
+        if (task.timerRunning) {
+          updateTaskChart(task._id);
+        }
+      }
     });
   }
-  
 
   function exportTasksToTextFile() {
     var tasks = TaskManager.getAllTasks();
