@@ -43,40 +43,71 @@ $(document).ready(function () {
 
   // Create a new PouchDB instance
   var db = new PouchDB("my_database");
-  var remoteCouchDB = 'YourDBURL';
+  var remoteCouchDB = "http://USERNAME:PASSWORD@COUCHDB_SERVER:5984/my_database";
 
-  function syncWithRemoteCouchDB() {
-    if (remoteCouchDB) {
-      db.sync(remoteCouchDB, {
-        live: true,
-        retry: true,
+// Function to start live sync after the initial replication is done.
+function syncWithRemoteCouchDB() {
+  if (remoteCouchDB) {
+    db.sync(remoteCouchDB, {
+      live: true,
+      retry: true,
+    })
+      .on('change', function (info) {
+        // handle change if needed
       })
-        .on('change', function (info) {
-          // handle change
-        })
-        .on('paused', function (err) {
-          // replication paused (e.g. replication up to date, user went offline)
-        })
-        .on('active', function () {
-          // replicate resumed (e.g. new changes replicating, user went back online)
-        })
-        .on('denied', function (err) {
-          // a document failed to replicate (e.g. due to permissions)
-        })
-        .on('complete', function (info) {
-          // handle complete
-        })
-        .on('error', function (err) {
-          // handle error
-          console.error("Error during CouchDB sync:", err); //Improvement: Log the error
-        });
-    }
+      .on('paused', function (err) {
+        // replication paused (up-to-date or offline)
+      })
+      .on('active', function () {
+        // replication resumed
+      })
+      .on('denied', function (err) {
+        // document failed to replicate (permissions issue)
+      })
+      .on('complete', function (info) {
+        // live sync started (this event may not fire with live:true)
+      })
+      .on('error', function (err) {
+        console.error("Error during CouchDB sync:", err);
+      });
   }
-  syncWithRemoteCouchDB();
-  //TODO should only make one instance of the database per user maybe use broadcast channel to send data to other tabs also
-  //TODO Create a DB to sync with
-  //TODO use a color library to generate and utilize different color palletes from background images for better contrast and visibility (light and dark variants at least).
-  // cont: and or adjust opacity of elements for the same reasons.
+}
+
+// Instead of loading tasks immediately, do initial replication first.
+function initialReplication() {
+  return db.replicate.from(remoteCouchDB, { live: false });
+}
+
+// Show a loading indicator here
+function showLoadingIndicator() {
+  // $("#loading").show();
+}
+function hideLoadingIndicator() {
+  // $("#loading").hide();
+}
+
+// Start initial replication and then load tasks
+showLoadingIndicator();
+initialReplication()
+  .then(function (info) {
+    console.log("Initial replication complete:", info);
+    // Load tasks only after initial replication is complete.
+    return TaskManager.loadTasks();
+  })
+  .then(function () {
+    renderTasks();
+    hideLoadingIndicator();
+    // Now start live sync for continuous updates.
+    syncWithRemoteCouchDB();
+  })
+  .catch(function (err) {
+    console.error("Error during initial replication:", err);
+    // Even if there's an error, try to load tasks and start live sync.
+    TaskManager.loadTasks().then(renderTasks);
+    hideLoadingIndicator();
+    syncWithRemoteCouchDB();
+  });
+
   var TaskManager = {
     tasks: [],
 
@@ -135,7 +166,7 @@ $(document).ready(function () {
   };
 
   // Load tasks from PouchDB on page load
-  TaskManager.loadTasks().then(renderTasks);
+  // TaskManager.loadTasks().then(renderTasks);
 
   // Load existing tasks from local storage on page load
   // var tasks = TaskManager.tasks;
@@ -152,10 +183,11 @@ $(document).ready(function () {
     var taskHours = parseInt($("#TaskHours").val().trim()) || 0;
     var taskMinutes = parseInt($("#TaskMinutes").val().trim()) || 0;
     var taskSeconds = parseInt($("#TaskSeconds").val().trim()) || 0;
-
+    var taskImage = $("#TaskImage")[0].files[0]; // Get the image file
+  
     // Convert hours, minutes, and seconds to a string in hh:mm:ss format
     var taskEstimate = `${String(taskHours).padStart(2, '0')}:${String(taskMinutes).padStart(2, '0')}:${String(taskSeconds).padStart(2, '0')}`;
-
+  
     if (taskDescr !== "") {
       var task = {
         JIRA: taskJIRA,
@@ -163,18 +195,31 @@ $(document).ready(function () {
         completed: false,
         dueDate: dueDate,
         timerRunning: false,
-        estimatedTime: taskEstimate  // Store the estimate as a string
+        estimatedTime: taskEstimate,
+        image: null // Initialize image as null
       };
-      TaskManager.addTask(task);
-      // clear fields
+  
+      if (taskImage) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          task.image = e.target.result; // Store the Base64 string
+          TaskManager.addTask(task);
+          renderTasks();
+        };
+        reader.readAsDataURL(taskImage); // Convert image to Base64 string
+      } else {
+        TaskManager.addTask(task);
+        renderTasks();
+      }
+  
+      // Clear fields
       $("#TaskJIRA").val("");
       $("#TaskDescr").val("");
       $("#TaskHours").val("");
       $("#TaskMinutes").val("");
       $("#TaskSeconds").val("");
       $('input[type="date"]').val("");
-      // render tasks
-      renderTasks();
+      $("#TaskImage").val(""); // Clear the image input
     }
   });
   
@@ -330,32 +375,35 @@ $(document).ready(function () {
     $("ul").empty();
     TaskManager.tasks.forEach(task => {
       const card = $("<div>", { class: "card mb-3", "data-id": task._id });
-
+  
       // Card header for the task JIRA
       var cardHeader = $("<div>", {
         class: "card-header",
         text: task.JIRA
       });
-
+  
       // Bootstrap row setup
       var row = $("<div>", { class: "row g-0" });
-      var colImg = $("<div>", { class: "col-md-4 d-none" });
+      var colImg = $("<div>", { 
+        class: task.image ? "col-md-4 d-flex align-items-center" : "col-md-4", 
+        style: task.image ? "" : "display: none;" 
+      });
       var img = $("<img>", {
-        src: "placeholder.jpg",
+        src: task.image || "", // Use the Base64 string or a placeholder
         class: "img-fluid rounded-start",
         alt: "Task image"
       });
       colImg.append(img);
-
-      var colBody = $("<div>", { class: "col" });
+  
+      var colBody = $("<div>", { class: "col d-flex flex-column" });
       var cardBody = $("<div>", { class: "card-body" });
-
+  
       // Task description
       var descriptionText = $("<p>", {
         class: "card-text",
         text: "Description: " + task.name
       });
-
+  
       // Extra info: Due date and estimated time
       var extraInfo = $("<p>", { class: "card-text" });
       var smallText = $("<small>", {
@@ -364,15 +412,15 @@ $(document).ready(function () {
           (task.estimatedTime ? "Est: " + task.estimatedTime : "No estimate")
       });
       extraInfo.append(smallText);
-
+  
       // Append description and extra info to card body
       cardBody.append(descriptionText, extraInfo);
-
+  
       // If the task has an estimated time, insert the donut chart right after the estimate.
       if (task.estimatedTime) {
         var chartContainer = $("<div>", {
           class: "donut-chart-container d-inline-block",
-          style: "width: 25px; height: 25px; margin-left: 10px; transform: translate(0px, .45em);"
+          style: "width: 25px; height: 25px; margin-left: 10px; transform: translate(0px, .45em);opacity:.7;"
         });
         var chartCanvas = $("<canvas>", {
           id: "chart-" + task._id,
@@ -382,7 +430,7 @@ $(document).ready(function () {
         chartContainer.append(chartCanvas);
         extraInfo.append(chartContainer);
       }
-
+  
       // Checkbox container
       var checkboxContainer = $("<div>", { class: "form-check mb-2" });
       var checkboxId = "taskCheckbox_" + task._id;
@@ -398,10 +446,10 @@ $(document).ready(function () {
         text: "Completed"
       });
       checkboxContainer.append(checkbox, checkboxLabel);
-
+  
       // Append checkbox container after chart
       cardBody.append(checkboxContainer);
-
+  
       // Card footer with timer and buttons
       var cardFooter = $("<div>", {
         class: "card-footer d-flex justify-content-end align-items-center"
@@ -422,7 +470,7 @@ $(document).ready(function () {
         style: "width:100px;"
       });
       startTimerContainer.append(startButton, timerInput);
-
+  
       var editButton = $("<button>", {
         class: "edit btn btn-outline-primary mr-2",
         text: "Edit"
@@ -433,19 +481,19 @@ $(document).ready(function () {
         style: "margin-right:.5em;"
       });
       cardFooter.append(startTimerContainer, deleteButton, editButton);
-
+  
       // Assemble the card
       colBody.append(cardHeader, cardBody, cardFooter);
       row.append(colImg, colBody);
       card.append(row);
       $("ul").append(card);
-
+  
       // If the task has an estimated time, create the donut chart
       if (task.estimatedTime) {
         const estimatedSeconds = parseTimeToSeconds(task.estimatedTime);
         const elapsedSeconds = task.elapsedTime ? Math.floor(task.elapsedTime / 1000) : 0;
         const percentComplete = estimatedSeconds > 0 ? Math.min((elapsedSeconds / estimatedSeconds) * 100, 100) : 0;
-
+  
         // Determine the completed portion's color based on progress
         let completedColor;
         if (elapsedSeconds > estimatedSeconds) {
@@ -455,7 +503,7 @@ $(document).ready(function () {
         } else {
           completedColor = 'rgba(75, 192, 192, 1)';   // Default color for 0-65%
         }
-
+  
         const donutData = {
           labels: ['Completed', 'Remaining'],
           datasets: [{
@@ -467,7 +515,7 @@ $(document).ready(function () {
             borderWidth: 0,
           }]
         };
-
+  
         const config = {
           type: 'doughnut',
           data: donutData,
@@ -481,7 +529,7 @@ $(document).ready(function () {
             cutout: '70%'
           },
         };
-
+  
         // Instantiate the chart for this task and store it in chartInstances
         var ctx = document.getElementById("chart-" + task._id).getContext("2d");
         chartInstances[task._id] = new Chart(ctx, config);
@@ -493,7 +541,6 @@ $(document).ready(function () {
       }
     });
   }
-
   function exportTasksToTextFile() {
     var tasks = TaskManager.getAllTasks();
     var tasksText = tasks
@@ -539,16 +586,3 @@ $(document).ready(function () {
     exportTasksToTextFile();
   });
 });
-
-//set up remote database via couchdb
-
-
-// var data = {
-//   "comment": "I did some work here.",
-//   "visibility": {
-//       "type": "group",
-//       "value": "jira-developers"
-//   },
-//   "started": "2017-12-07T09:23:19.552+0000",
-//   "timeSpentSeconds": 12000
-// };
