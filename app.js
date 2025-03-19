@@ -43,7 +43,9 @@ $(document).ready(function () {
 
   // Create a new PouchDB instance
   var db = new PouchDB("my_database");
-  var remoteCouchDB = "http://USERNAME:PASSWORD@COUCHDB_SERVER_ADDRESS:5984/my_database";
+  // var remoteCouchDB = "http://korycthompson:KHRty9iemmGMb97YujMN@69.141.44.161:5984/my_database";
+  var remoteCouchDB = "http://" + COUCHDB_USERNAME + ":" + COUCHDB_PASSWORD + "@" +
+  COUCHDB_HOST + ":" + COUCHDB_PORT + "/" + COUCHDB_DB;
 
 // Function to start live sync after the initial replication is done.
 function syncWithRemoteCouchDB() {
