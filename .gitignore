@@ -2,3 +2,4 @@
 .env
 config.js
 /YouveBeenServed/node_modules
+/YouveBeenServed/serverDB

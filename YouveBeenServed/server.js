@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const PouchDB = require('pouchdb');
 
 const app = express();
 
@@ -26,6 +27,14 @@ const {
 
 // Construct the base URL for CouchDB
 const COUCHDB_URL = `http://${COUCHDB_USERNAME}:${COUCHDB_PASSWORD}@${COUCHDB_HOST}:${COUCHDB_PORT}/${COUCHDB_DB}`;
+
+const localDB = new PouchDB('serverDB');
+
+// Start continuous sync in the background
+localDB.sync(COUCHDB_URL, { live: true, retry: true })
+  .on('error', (err) => {
+    console.error("Sync error:", err);
+  });
 
 /**
  * GET /api/tasks
