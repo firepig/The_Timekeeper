@@ -2,6 +2,8 @@ $(document).ready(function () {
   // Define the API base URL with the correct port
   var API_BASE_URL = "http://localhost:3000";
 
+  var localDB = new PouchDB('timekeeper');
+
   // Animate background image transitions
   function timeCheck() {
     const timeRanges = [
