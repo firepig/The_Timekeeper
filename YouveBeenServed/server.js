@@ -12,8 +12,8 @@ app.use(cors({
 }));
 app.options('*', cors()); // Enable pre-flight requests
 
-// Middleware to parse JSON bodies
-app.use(express.json());
+// Middleware to parse JSON bodies with increased payload limit
+app.use(express.json({ limit: "10mb" }));
 
 // Load credentials from environment variables
 const {
