@@ -3,6 +3,7 @@ $(document).ready(function () {
   var API_BASE_URL = "http://localhost:3000";
 
   var localDB = new PouchDB('timekeeper');
+  var chartInstances = {}; // <--- new global variable to store chart instances
 
   // Animate background image transitions
   function timeCheck() {
@@ -275,7 +276,8 @@ $(document).ready(function () {
         };
 
         const ctx = document.getElementById("chart-" + task._id).getContext("2d");
-        new Chart(ctx, config);
+        // Store the chart instance for real-time updates
+        chartInstances[task._id] = new Chart(ctx, config);
       }
     });
   }
@@ -372,7 +374,26 @@ $(document).ready(function () {
       if (task.estimatedTime) {
         const estimatedSeconds = parseTimeToSeconds(task.estimatedTime);
         const elapsedSeconds = Math.floor(elapsedTime / 1000);
+        const percentComplete = estimatedSeconds > 0 ? Math.min((elapsedSeconds / estimatedSeconds) * 100, 100) : 0;
+
+        // Update timer color based on elapsed time
         $timer.css("color", elapsedSeconds > estimatedSeconds ? "red" : "green");
+
+        // Update the donut chart if it exists
+        if (chartInstances[taskId]) {
+          let completedColor;
+          if (elapsedSeconds > estimatedSeconds) {
+            completedColor = 'rgba(255, 99, 132, 1)';
+          } else if (percentComplete >= 65) {
+            completedColor = 'rgba(255, 205, 86, 1)';
+          } else {
+            completedColor = 'rgba(75, 192, 192, 1)';
+          }
+
+          chartInstances[taskId].data.datasets[0].data = [percentComplete, 100 - percentComplete];
+          chartInstances[taskId].data.datasets[0].backgroundColor[0] = completedColor;
+          chartInstances[taskId].update();
+        }
       }
     }
   }
