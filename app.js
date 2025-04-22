@@ -46,15 +46,21 @@ $(document).ready(function () {
   // TaskManager using AJAX calls to your Node proxy
   var TaskManager = {
     tasks: [],
-
+    showArchived: false, // Track whether to show archived tasks
+  
     loadTasks: function () {
       return $.ajax({
         url: API_BASE_URL + '/api/tasks',
         method: 'GET',
         dataType: 'json'
       }).then(function (tasks) {
-        TaskManager.tasks = tasks;
+        // Store all tasks but filter for display based on archive status
+        TaskManager.allTasks = tasks;
+        TaskManager.tasks = TaskManager.showArchived ? 
+          tasks : 
+          tasks.filter(task => !task.archived);
         renderTasks();
+        updateArchivedCounter(); // Update the counter for archived tasks
       }).fail(function (err) {
         console.error("Error loading tasks:", err);
       });
@@ -122,8 +128,19 @@ $(document).ready(function () {
   function renderTasks() {
     $("ul").empty();
     TaskManager.tasks.forEach(task => {
-      const card = $("<div>", { class: "card mb-3", "data-id": task._id });
-
+      const card = $("<div>", { 
+        class: "card mb-3" + (task.archived ? " archived-task" : ""), 
+        "data-id": task._id 
+      });
+      
+      // Add visual indication for archived tasks
+      if (task.archived) {
+        card.css({
+          "opacity": "0.7",
+          "background-color": "#f8f9fa"
+        });
+      }
+      
       // Card header for the task JIRA
       const cardHeader = $("<div>", {
         class: "card-header",
@@ -304,6 +321,12 @@ $(document).ready(function () {
     );
   }
 
+  function updateArchivedCounter() {
+    const archivedCount = TaskManager.allTasks ? 
+      TaskManager.allTasks.filter(task => task.archived).length : 0;
+    $("#archived-counter").text(`${archivedCount} archived`);
+  }
+
   // Event handlers
 
   $("form").on("submit", function (e) {
@@ -355,6 +378,7 @@ $(document).ready(function () {
     var task = TaskManager.getTask(index);
     if (task) {
       task.completed = $(this).prop("checked");
+      task.archived = $(this).prop("checked"); // Also mark as archived when completed
       TaskManager.updateTask(task);
     }
   });
@@ -443,7 +467,7 @@ $(document).ready(function () {
   });
 
   function exportTasksToTextFile() {
-    var tasks = TaskManager.getAllTasks();
+    var tasks = TaskManager.allTasks || [];
     var tasksText = tasks
       .map(function (task, index) {
         return (
@@ -453,6 +477,7 @@ $(document).ready(function () {
           "JIRA: " + task.JIRA + "\n" +
           "Due date: " + task.dueDate + "\n" +
           "Completed: " + (task.completed ? "Yes" : "No") + "\n" +
+          "Archived: " + (task.archived ? "Yes" : "No") + "\n" +
           "Elapsed time: " + (task.elapsedTime ? formatTime(task.elapsedTime) : "00:00:00") + "\n" +
           "----------------------------------------\n"
         );
@@ -474,4 +499,48 @@ $(document).ready(function () {
   $("#export-button").on("click", function () {
     exportTasksToTextFile();
   });
+
+  // Add event handler for the toggle button
+  $("#toggle-archived").on("click", function() {
+    TaskManager.showArchived = !TaskManager.showArchived;
+    $("#toggle-text").text(TaskManager.showArchived ? "Hide Archived" : "Show Archived");
+    TaskManager.loadTasks();
+  });
+
+  // --- AUTHENTICATION LOGIC ---
+  function updateAuthUI(user) {
+    if (user) {
+      $("#user-info").text(user.displayName || user.email);
+      $("#login-btn").addClass("d-none");
+      $("#logout-btn").removeClass("d-none");
+      $("form, main .d-flex, ul, #export-button").show();
+    } else {
+      $("#user-info").text("");
+      $("#login-btn").removeClass("d-none");
+      $("#logout-btn").addClass("d-none");
+      $("form, main .d-flex, ul, #export-button").hide();
+    }
+  }
+
+  function checkAuth() {
+    $.get("http://localhost:3000/api/user")
+      .done(function(user) {
+        updateAuthUI(user);
+        if (user) TaskManager.loadTasks();
+      })
+      .fail(function() {
+        updateAuthUI(null);
+      });
+  }
+
+  $("#login-btn").on("click", function() {
+    window.location.href = "http://localhost:3000/auth/google";
+  });
+  $("#logout-btn").on("click", function() {
+    window.location.href = "http://localhost:3000/auth/logout";
+  });
+
+  // Hide task UI by default until auth is checked
+  $("form, main .d-flex, ul, #export-button").hide();
+  checkAuth();
 });

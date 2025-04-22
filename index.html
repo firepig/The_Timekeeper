@@ -18,6 +18,11 @@
 <body>
   <header>
     <h1>The Timekeeper</h1>
+    <div id="auth-controls" class="d-flex justify-content-end align-items-center" style="position:absolute;top:20px;right:20px;">
+      <span id="user-info" class="me-2"></span>
+      <button id="login-btn" class="btn btn-success">Login with Google</button>
+      <button id="logout-btn" class="btn btn-danger d-none">Logout</button>
+    </div>
   </header>
   <main>
     <form>
@@ -78,9 +83,20 @@
 
       <button id="Submit" class="btn btn-primary" type="submit">Add</button>
     </form>
-      <ul class="p-0 w-100">
-        <!-- Add tasks dynamically from local storage -->
-      </ul>
+    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2>Tasks</h2>
+      <div class="archive-controls">
+        <span id="archived-counter" class="badge bg-secondary me-2">0 archived</span>
+        <button id="toggle-archived" class="btn btn-outline-secondary btn-sm">
+          <span id="toggle-text">Show Archived</span>
+        </button>
+      </div>
+    </div>
+
+    <ul class="p-0 w-100">
+      <!-- Add tasks dynamically from local storage -->
+    </ul>
   </main>
 
   <button id="export-button">Export Tasks</button>
